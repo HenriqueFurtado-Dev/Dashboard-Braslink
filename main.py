@@ -1,7 +1,8 @@
 import hmac
+import math
+from ssl import cert_time_to_seconds
 import streamlit as st
 import pandas as pd
-import streamlit as st
 import matplotlib.pyplot as plt
 
 
@@ -23,6 +24,19 @@ style = """
 .square .titulo {
     font-size: 22px;
 }
+.espaco {
+    width: 60px;
+    background-color: red;
+}
+.titulo-atendidas {
+    color: green;
+    font-size: 22px;
+}
+.titulo-nao-atendidas {
+    color: red;
+    font-size: 22px;
+}
+
 """
 
 def check_password():
@@ -64,7 +78,45 @@ def check_password():
 if not check_password():
     st.stop()
 
+# Função para gerar o primeiro gráfico
+def generate_first_chart(atendidas, nao_atendidas):
+    # Configurando os dados do gráfico
+    sizes = [atendidas, nao_atendidas]
+    labels = [f'Atendidas\n{atendidas}', f'Não Atendidas\n{nao_atendidas}']
+    colors = ['green', 'red']
+    explode = [0.1, 0]
 
+    # Criando o gráfico de pizza
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=colors)
+
+    # Adicionando título
+    ax.set_title('(SLA) Produzido')
+
+    # Adicionando legenda
+    ax.legend(loc="upper right", labels=labels)
+
+    return fig
+
+# Função para gerar o segundo gráfico
+def generate_second_chart(objetivo_atendimento, sla_minimo):
+    # Configurando o gráfico
+    sizes = [objetivo_atendimento, sla_minimo]
+    labels = [f'Atendimentos Totais \n{objetivo_atendimento}', f'Não Atendidas(SLA) \n{sla_minimo}']
+    cores = ['cyan', 'yellow']
+    explode = [0.1, 0]
+
+    # Criando o gráfico de pizza
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=cores)
+
+    # Adicionando título
+    ax.set_title('(SLA) Objetivo')
+
+    # Adicionando legenda
+    ax.legend(loc="upper right", labels=labels)
+
+    return fig
 
 # Main Streamlit app starts here
 def main():
@@ -91,37 +143,67 @@ def first_analyse(df):
     # Adiciona o estilo CSS à página
     st.markdown(style, unsafe_allow_html=True)
 
+    st.title('Informações sobre atendimentos')
+
     # Define o conteúdo das três colunas
     col1, col2, col3 = st.columns(3)
+
 
     # Adiciona os campos quadrados às colunas
     with col1:
         st.markdown(f'<div class="square"><span class="titulo">Total:</span>{atendimento_total}</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown(f'<div class="square"><span class="titulo">Atendidas:</span>{atendidas}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="square"><span class="titulo-atendidas">Atendidas:</span>{atendidas}</div>', unsafe_allow_html=True)
 
     with col3:
-        st.markdown(f'<div class="square"><span class="titulo">Não Atendidas:</span>{nao_atendidas}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="square"><span class="titulo-nao-atendidas">Não Atendidas:</span>{nao_atendidas}</div>', unsafe_allow_html=True)
+    
+    # Gerando os gráficos
+    fig1 = generate_first_chart(atendidas, nao_atendidas)
+    fig2 = generate_second_chart(atendimento_total - math.trunc((atendimento_total / 100) * 15), math.trunc((atendimento_total / 100) * 15))
 
-    # Configurando os dados do gráfico
-    sizes = [atendidas, nao_atendidas]
-    labels = [f'Atendidas\n{atendidas}', f'Não Atendidas\n{nao_atendidas}']
-    colors = ['green', 'red']
-    explode = [0.1, 0]
+    # Exibindo os gráficos lado a lado com padding superior e inferior
+    col1, col2 = st.columns(2)
+    with col1:
+        st.pyplot(fig1, clear_figure=True, use_container_width=True, padding_top=120, padding_bottom=120)
 
-    # Criando o gráfico de pizza
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=colors)
+    with col2:
+        st.pyplot(fig2, clear_figure=True, use_container_width=True, padding_top=120, padding_bottom=120)
+    
+    st.title('Tempo médio')
 
-    # Adicionando título
-    ax.set_title('Atendimentos Totais e Não Atendidas (SLA)')
+    df.rename(columns={'  T.M. ATEND.': 'tempo_medio_atend'}, inplace=True)
+    df.rename(columns={'T.M. ABAND.': 'tempo_medio_abandono'}, inplace=True)
+    df.rename(columns={'T.M. ESPERA': 'tempo_medio_espera'}, inplace=True)
 
-    # Adicionando legenda
-    ax.legend(loc="upper right", labels=labels)
+    
+    # Defina a função de tempo médio para calcular a média de tempo e converter para string formatada
+    def format_mean_time(column):
+        mean_timedelta = pd.to_timedelta(column).mean()  # Calcula o tempo médio
+        minutes = (mean_timedelta.seconds % 3600) // 60  # Calcula os minutos
+        seconds = mean_timedelta.seconds % 60  # Calcula os segundos
+        return f"{minutes:02d}:{seconds:02d}"  # Formata a string para exibir
 
-    # Exibindo o gráfico no Streamlit
-    st.pyplot(fig)
+    # No main():
+    # Calcula os tempos médios e formata para exibição
+    atendimento = format_mean_time(df['tempo_medio_atend'])
+    espera = format_mean_time(df['tempo_medio_espera'])
+    abandono = format_mean_time(df['tempo_medio_abandono'])
+
+
+    # Define o conteúdo das três colunas
+    col1, col2, col3 = st.columns(3)
+
+    # Adiciona os campos quadrados às colunas
+    with col1:
+        st.markdown(f'<div class="square"><span class="titulo">ATENDIMENTO:</span>{atendimento}</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f'<div class="square"><span class="titulo-atendidas">ESPERA:</span>{espera}</div>', unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f'<div class="square"><span class="titulo-nao-atendidas">ABANDONO:</span>{abandono}</div>', unsafe_allow_html=True)
 
 
 
