@@ -2,6 +2,8 @@ import hmac
 import streamlit as st
 import pandas as pd
 import streamlit as st
+import matplotlib.pyplot as plt
+
 
 # Define o estilo CSS inline
 style = """
@@ -21,16 +23,18 @@ style = """
 .square .titulo {
     font-size: 22px;
 }
-</style>
 """
 
 def check_password():
     def login_form():
         # Creating a form to take user input
         with st.form("Credentials"):
+            st.image('logo-braslink.png', width=200)
+            st.title("Login - Painel Global")
             st.text_input("Username", key="username")
             st.text_input("Password", type="password", key="password")
             st.form_submit_button("Log in", on_click=password_entered)
+            st.text("Feito por Henrique Furtado 💜")
 
     def password_entered():
         # Verify username and password
@@ -65,7 +69,9 @@ if not check_password():
 # Main Streamlit app starts here
 def main():
     st.title("Braslink - Análises e Relatórios")
+    
     uploaded_file = st.file_uploader("Selecione um arquivo CSV no padrão export da Global")
+
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
@@ -97,6 +103,27 @@ def first_analyse(df):
 
     with col3:
         st.markdown(f'<div class="square"><span class="titulo">Não Atendidas:</span>{nao_atendidas}</div>', unsafe_allow_html=True)
+
+    # Configurando os dados do gráfico
+    sizes = [atendidas, nao_atendidas]
+    labels = [f'Atendidas\n{atendidas}', f'Não Atendidas\n{nao_atendidas}']
+    colors = ['green', 'red']
+    explode = [0.1, 0]
+
+    # Criando o gráfico de pizza
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=colors)
+
+    # Adicionando título
+    ax.set_title('Atendimentos Totais e Não Atendidas (SLA)')
+
+    # Adicionando legenda
+    ax.legend(loc="upper right", labels=labels)
+
+    # Exibindo o gráfico no Streamlit
+    st.pyplot(fig)
+
+
 
 
 if __name__ == '__main__':
