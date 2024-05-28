@@ -5,7 +5,6 @@ import seaborn as sns  # Incluindo seaborn para gráficos
 import hmac
 import math
 
-
 style = """
 <style>
 .square {
@@ -42,7 +41,7 @@ def check_password():
     def login_form():
         with st.form("Credentials"):
             st.image('logo-braslink.png', width=200)
-            st.title("Login - Painel Global")
+            st.title("Login - Realtórios")
             st.text_input("Username", key="username")
             st.text_input("Password", type="password", key="password")
             st.form_submit_button("Log in", on_click=password_entered)
@@ -124,7 +123,9 @@ def generate_sla_pie_chart(df):
     return fig
 
 
+
 def main():
+    
     st.title(f"🛠️ Seja bem vindo {st.session_state.get('user', '').capitalize()}")
 
     st.write("""
@@ -138,7 +139,6 @@ def main():
 
     uploaded_file = st.file_uploader("Selecione um arquivo CSV no padrão export da Global")
     
-
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
@@ -227,8 +227,6 @@ def first_analyse(df):
 
     st.title("🖨️ Imprima o relatório")
     st.image('./ctrlp.png', caption='basta pressionar CTRL + P para abrir a janela de impressão do navegador', use_column_width=True)
-
-
 
 if __name__ == '__main__':
     main()
