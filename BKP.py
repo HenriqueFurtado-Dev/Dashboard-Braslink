@@ -1,10 +1,12 @@
+import hmac
+import math
+from ssl import cert_time_to_seconds
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns  # Incluindo seaborn para gráficos
-import hmac
-import math
 
+
+# Define o estilo CSS inline
 style = """
 <style>
 .square {
@@ -34,11 +36,12 @@ style = """
     color: red;
     font-size: 22px;
 }
-</style>
+
 """
 
 def check_password():
     def login_form():
+        # Creating a form to take user input
         with st.form("Credentials"):
             st.image('logo-braslink.png', width=200)
             st.title("Login - Painel Global")
@@ -48,6 +51,7 @@ def check_password():
             st.text("Feito por Henrique Furtado 💜")
 
     def password_entered():
+        # Verify username and password
         if st.session_state["username"] in st.secrets[
             "passwords"
         ] and hmac.compare_digest(
@@ -55,35 +59,46 @@ def check_password():
             st.secrets.passwords[st.session_state["username"]],
         ):
             st.session_state["password_correct"] = True
-            st.session_state["user"] = st.session_state["username"]  # Armazena o nome do usuário na sessão
-            del st.session_state["password"]
+            del st.session_state["password"]  # Don't store the username or password.
             del st.session_state["username"]
         else:
             st.session_state["password_correct"] = False
 
-
+    # Return True if the username + password is validated.
     if st.session_state.get("password_correct", False):
         return True
 
+    # Show inputs for username + password.
     login_form()
     if "password_correct" in st.session_state:
         st.error("😕 Usuário não encontrado ou senha incorreta")
     return False
 
+
 if not check_password():
     st.stop()
 
+# Função para gerar o primeiro gráfico
 def generate_first_chart(atendidas, nao_atendidas):
+    # Configurando os dados do gráfico
     sizes = [atendidas, nao_atendidas]
     labels = [f'Atendidas\n{atendidas}', f'Não Atendidas\n{nao_atendidas}']
     colors = ['green', 'red']
     explode = [0.1, 0]
+
+    # Criando o gráfico de pizza
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=colors)
+
+    # Adicionando título
     ax.set_title('(SLA) Produzido')
+
+    # Adicionando legenda
     ax.legend(loc="upper right", labels=labels)
+
     return fig
 
+# Função para gerar o segundo gráfico
 def generate_second_chart(objetivo_atendimento, sla_minimo):
     sizes = [objetivo_atendimento, sla_minimo]
     labels = [f'Atendimentos Totais \n{objetivo_atendimento}', f'Não Atendidas(SLA) \n{sla_minimo}']
@@ -93,54 +108,49 @@ def generate_second_chart(objetivo_atendimento, sla_minimo):
     ax.pie(sizes, labels=labels, autopct='%.1f%%', explode=explode, startangle=90, colors=cores)
     ax.set_title('(SLA) Objetivo')
     ax.legend(loc="upper right", labels=labels)
+
     return fig
 
-def generate_bar_chart(df):
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x='PERÍODO', y='ATENDIDAS', data=df)
-    plt.xlabel('Período')
-    plt.ylabel('Média de Atendidas')
-    plt.title('Comparação de Médias de Atendidas por Período')
-    plt.xticks(rotation=45)
-    plt.gca().set_xticklabels(df['PERÍODO'][::-1])
-    st.pyplot(plt)
+# Função para gerar o terceiro gráfico de barras
+def generate_period_chart(PERÍODO, ATENDIDAS):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(['PERÍODO', 'ATENDIDAS'], [PERÍODO, ATENDIDAS], color=['cyan', 'yellow'])
+    ax.set_title('Período vs Atendidas')
+    ax.set_ylabel('Quantidade')
+    return fig
 
-def generate_line_chart(df):
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['PERÍODO'], df['ATENDIDAS'], marker='o', color='b')
-    plt.xlabel('Período')
-    plt.ylabel('Média de Atendidas')
-    plt.title('Média de Atendidas por Período')
-    plt.xticks(rotation=45)
-    plt.grid(True)
-    st.pyplot(plt)
-
+# Main Streamlit app starts here
 def main():
-    st.title(f"Seja bem vindo {st.session_state.get('user', '').capitalize()}")
-
+    st.title("Braslink - Análises e Relatórios")
+    
     uploaded_file = st.file_uploader("Selecione um arquivo CSV no padrão export da Global")
 
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
-            df.columns = df.columns.str.strip()
             first_analyse(df)
         except Exception as e:
             st.error(f"Erro ao ler o arquivo: {e}")
 
 def first_analyse(df):
     st.write(df.head())
+    
+    atendidas = df['ATENDIDAS'].sum() + df['NÃO ATENDIDAS'].sum()
+    nao_atendidas = df['NÃO ATENDIDAS'].sum()  
 
-    atendidas = df['ATENDIDAS'].sum()
-    nao_atendidas = df['NÃO ATENDIDAS'].sum()
     atendimento_total = atendidas + nao_atendidas
+    
 
+    # Adiciona o estilo CSS à página
     st.markdown(style, unsafe_allow_html=True)
 
     st.title('Informações sobre atendimentos')
 
+    # Define o conteúdo das três colunas
     col1, col2, col3 = st.columns(3)
 
+
+    # Adiciona os campos quadrados às colunas
     with col1:
         st.markdown(f'<div class="square"><span class="titulo">Total:</span>{atendimento_total}</div>', unsafe_allow_html=True)
 
@@ -149,33 +159,44 @@ def first_analyse(df):
 
     with col3:
         st.markdown(f'<div class="square"><span class="titulo-nao-atendidas">Não Atendidas:</span>{nao_atendidas}</div>', unsafe_allow_html=True)
-
+    
+    # Gerando os gráficos
     fig1 = generate_first_chart(atendidas, nao_atendidas)
     fig2 = generate_second_chart(atendimento_total - math.trunc((atendimento_total / 100) * 15), math.trunc((atendimento_total / 100) * 15))
 
+    # Exibindo os gráficos lado a lado com padding superior e inferior
     col1, col2 = st.columns(2)
     with col1:
-        st.pyplot(fig1)
+        st.pyplot(fig1, clear_figure=True, use_container_width=True, padding_top=120, padding_bottom=120)
 
     with col2:
-        st.pyplot(fig2)
-
+        st.pyplot(fig2, clear_figure=True, use_container_width=True, padding_top=120, padding_bottom=120)
+    
     st.title('Tempo médio')
 
-    df.rename(columns={'T.M. ATEND.': 'tempo_medio_atend', 'T.M. ABAND.': 'tempo_medio_abandono', 'T.M. ESPERA': 'tempo_medio_espera'}, inplace=True)
+    df.rename(columns={'  T.M. ATEND.': 'tempo_medio_atend'}, inplace=True)
+    df.rename(columns={'T.M. ABAND.': 'tempo_medio_abandono'}, inplace=True)
+    df.rename(columns={'T.M. ESPERA': 'tempo_medio_espera'}, inplace=True)
 
+    
+    # Defina a função de tempo médio para calcular a média de tempo e converter para string formatada
     def format_mean_time(column):
-        mean_timedelta = pd.to_timedelta(column).mean()
-        minutes = (mean_timedelta.seconds % 3600) // 60
-        seconds = mean_timedelta.seconds % 60
-        return f"{minutes:02d}:{seconds:02d}"
+        mean_timedelta = pd.to_timedelta(column).mean()  # Calcula o tempo médio
+        minutes = (mean_timedelta.seconds % 3600) // 60  # Calcula os minutos
+        seconds = mean_timedelta.seconds % 60  # Calcula os segundos
+        return f"{minutes:02d}:{seconds:02d}"  # Formata a string para exibir
 
+    # No main():
+    # Calcula os tempos médios e formata para exibição
     atendimento = format_mean_time(df['tempo_medio_atend'])
     espera = format_mean_time(df['tempo_medio_espera'])
     abandono = format_mean_time(df['tempo_medio_abandono'])
 
+
+    # Define o conteúdo das três colunas
     col1, col2, col3 = st.columns(3)
 
+    # Adiciona os campos quadrados às colunas
     with col1:
         st.markdown(f'<div class="square"><span class="titulo">ATENDIMENTO:</span>{atendimento}</div>', unsafe_allow_html=True)
 
@@ -186,8 +207,9 @@ def first_analyse(df):
         st.markdown(f'<div class="square"><span class="titulo-nao-atendidas">ABANDONO:</span>{abandono}</div>', unsafe_allow_html=True)
 
     st.title("Comparação de atendimentos")
-    generate_bar_chart(df)
-    generate_line_chart(df)
+    # Chamada para a função de geração do terceiro gráfico de barras
+    fig3 = generate_period_chart(df['PERÍODO'], df['ATENDIDAS'])
+    st.pyplot(fig3)
 
 if __name__ == '__main__':
     main()
