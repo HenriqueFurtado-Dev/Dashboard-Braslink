@@ -41,7 +41,7 @@ def check_password():
     def login_form():
         with st.form("Credentials"):
             st.image('logo-braslink.png', width=200)
-            st.title("Login - Realtórios")
+            st.title("Login - Relatórios")
             st.text_input("Username", key="username")
             st.text_input("Password", type="password", key="password")
             st.form_submit_button("Log in", on_click=password_entered)

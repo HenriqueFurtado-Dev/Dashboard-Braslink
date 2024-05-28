@@ -1,8 +1,8 @@
 import streamlit as st
 import json
+import pandas as pd
 from datetime import datetime
 import hmac
-
 
 def check_password():
     def login_form():
@@ -36,6 +36,7 @@ def check_password():
 if not check_password():
     st.stop()
 
+
 # Função para carregar os dados do arquivo JSON
 def load_data():
     try:
@@ -49,10 +50,16 @@ def save_data(data):
     with open('data.json', 'w') as file:
         json.dump(data, file, indent=4)
 
+# Função para converter os dados para CSV
+def convert_to_csv(data):
+    df = pd.DataFrame(data)
+    return df.to_csv(index=False)
+
 # Carregar dados existentes
 data = load_data()
 
 st.title("Registro de Ocorrências")
+st.write("Use o formulário abaixo para registrar uma nova ocorrência e posteriormente baixar os dados em formato JSON ou CSV.")
 
 # Formulário de entrada de dados
 with st.form("entry_form"):
@@ -79,15 +86,25 @@ with st.form("entry_form"):
         else:
             st.error("Por favor, preencha todos os campos.")
 
+# Adicionar botões para download
+st.subheader("Baixar Dados")
+json_data = json.dumps(data, indent=4)
+st.download_button(label="Baixar JSON", data=json_data, file_name="data.json", mime="application/json")
+
+csv_data = convert_to_csv(data)
+st.download_button(label="Baixar CSV", data=csv_data, file_name="data.csv", mime="text/csv")
+
+
 # Exibir dados já cadastrados
 st.subheader("Ocorrências Cadastradas")
 if data:
     for entry in data:
-        st.write(f"**Nome:** {entry['nome']}")
-        st.write(f"**Assuntos:** {', '.join(entry['assuntos'])}")
-        st.write(f"**Protocolo:** {entry['protocolo']}")
-        st.write(f"**Data do Ocorrido:** {entry['data_ocorrencia']}")
-        st.write(f"**Comentário:** {entry['comentario']}")
+        st.write(f"**Nome:** {entry.get('nome', 'N/A')}")
+        st.write(f"**Assuntos:** {', '.join(entry.get('assuntos', []))}")
+        st.write(f"**Protocolo:** {entry.get('protocolo', 'N/A')}")
+        st.write(f"**Data do Ocorrido:** {entry.get('data_ocorrencia', 'N/A')}")
+        st.write(f"**Comentário:** {entry.get('comentario', 'N/A')}")
         st.markdown("---")
 else:
     st.write("Nenhuma ocorrência cadastrada.")
+
