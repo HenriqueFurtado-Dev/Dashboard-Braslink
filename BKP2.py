@@ -5,7 +5,6 @@ import seaborn as sns  # Incluindo seaborn para gráficos
 import hmac
 import math
 
-
 style = """
 <style>
 .square {
@@ -49,15 +48,19 @@ def check_password():
             st.text("Feito por Henrique Furtado 💜")
 
     def password_entered():
-        if st.session_state["username"] in st.secrets["passwords"] and hmac.compare_digest(
-                st.session_state["password"],
-                st.secrets.passwords[st.session_state["username"]]):
+        if st.session_state["username"] in st.secrets[
+            "passwords"
+        ] and hmac.compare_digest(
+            st.session_state["password"],
+            st.secrets.passwords[st.session_state["username"]],
+        ):
             st.session_state["password_correct"] = True
             st.session_state["user"] = st.session_state["username"]  # Armazena o nome do usuário na sessão
             del st.session_state["password"]
             del st.session_state["username"]
         else:
             st.session_state["password_correct"] = False
+
 
     if st.session_state.get("password_correct", False):
         return True
@@ -112,32 +115,16 @@ def generate_line_chart(df):
     plt.grid(True)
     st.pyplot(plt)
 
-def generate_sla_pie_chart(df):
-    sla_padrao = df['SLA PADRÃO (%)'].mean()
-    sla_desejado = df['SLA DESEJADO (%)'].mean()
-    labels = ['SLA Padrão', 'SLA Desejado']
-    sizes = [sla_padrao, sla_desejado]
-    colors = ['blue', 'orange']
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.pie(sizes, labels=labels, autopct='%.1f%%', startangle=90, colors=colors)
-    ax.set_title('Média de SLA Padrão vs Desejado')
-    return fig
-
-
 def main():
     st.title(f"🛠️ Seja bem vindo {st.session_state.get('user', '').capitalize()}")
 
     st.write("""
-    Este painel permite analisar e visualizar dados de atendimento ao cliente. Carregue um arquivo CSV para ver as estatísticas e gráficos gerados a partir dos dados.
-    
-    ### Funcionalidades:
-    - 💾 **Upload e Leitura de Arquivo:** Carregue um arquivo CSV contendo os dados de atendimento.
-    - 📊 **Análise de Dados:** Veja uma análise inicial dos dados.
-    - 📈 **Geração de Gráficos:** Visualize diferentes gráficos baseados nos dados carregados.
-    """)
+        Este script realiza várias tarefas para analisar e visualizar dados de atendimento. Abaixo estão as funcionalidades detalhadas:
 
-    uploaded_file = st.file_uploader("Selecione um arquivo CSV no padrão export da Global")
-    
+        ### 💾 Upload e Leitura de Arquivo
+        """)
+
+    uploaded_file = st.file_uploader("Selecione um arquivo CSV no padrão export da Global, Esperamos que você aproveite a aplicação e obtenha insights valiosos dos seus dados! 😊")
 
     if uploaded_file is not None:
         try:
@@ -158,12 +145,11 @@ def first_analyse(df):
 
     st.title('Informações Totais')
     st.write("""
-    ### Informações Gerais dos Atendimentos
-    - **Total de Atendimentos:** Soma de todas as chamadas atendidas e não atendidas.
-    - **Atendidas:** Número total de chamadas atendidas.
-    - **Não Atendidas:** Número total de chamadas não atendidas.
-    """)
-    
+        ### 📊 Análise de Dados
+        - **Função `first_analyse(df)`:
+        - ** Realiza a primeira análise dos dados importados do CSV, mostrando as primeiras linhas e calculando estatísticas importantes.
+             """)
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -185,14 +171,13 @@ def first_analyse(df):
     with col2:
         st.pyplot(fig2)
 
-    st.title('Tempo Médio de Atendimentos')
+    st.title('Tempo médio')
     st.write("""
-    ### Tempos Médios
-    - **Tempo Médio de Atendimento:** Tempo médio que leva para atender uma chamada.
-    - **Tempo Médio de Espera:** Tempo médio que uma chamada espera antes de ser atendida.
-    - **Tempo Médio de Abandono:** Tempo médio até que uma chamada é abandonada (desistida pelo cliente).
-    """)
-    
+        ### 🕒 Cálculo de Tempos Médios
+        - **Função `first_analyse(df)`:
+        - ** Realiza a primeira análise dos dados importados do CSV, mostrando as primeiras linhas e calculando estatísticas importantes.
+             """)
+
     df.rename(columns={'T.M. ATEND.': 'tempo_medio_atend', 'T.M. ABAND.': 'tempo_medio_abandono', 'T.M. ESPERA': 'tempo_medio_espera'}, inplace=True)
 
     def format_mean_time(column):
@@ -216,19 +201,15 @@ def first_analyse(df):
     with col3:
         st.markdown(f'<div class="square"><span class="titulo-nao-atendidas">ABANDONO:</span>{abandono}</div>', unsafe_allow_html=True)
 
-    st.title("Comparação de Atendimentos")
+    st.title("Comparação de atendimentos")
     st.write("""
-    ### Comparação de Desempenho ao Longo do Tempo
-    - **Gráfico de Barras:** Mostra a média de chamadas atendidas por período.
-    - **Gráfico de Linhas:** Exibe a tendência de atendimento ao longo do tempo.
-    """)
+        ### 📈 Geração de Gráficos
+        - **Função `generate_first_chart(atendidas, nao_atendidas)`:** Gera um gráfico de pizza mostrando a proporção de atendimentos realizados e não realizados.
+        - **Função `generate_second_chart(objetivo_atendimento, sla_minimo)`:** Cria outro gráfico de pizza para comparar os atendimentos totais com os não atendidos dentro do SLA desejado.
+        - **Função `generate_period_chart(PERÍODO, ATENDIDAS)`:** Cria um gráfico de barras para comparar a quantidade de atendimentos por período.
+        """)
     generate_bar_chart(df)
     generate_line_chart(df)
-
-    st.title("🖨️ Imprima o relatório")
-    st.image('./ctrlp.png', caption='basta pressionar CTRL + P para abrir a janela de impressão do navegador', use_column_width=True)
-
-
 
 if __name__ == '__main__':
     main()
