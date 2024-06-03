@@ -58,7 +58,7 @@ def convert_to_csv(data):
 # Carregar dados existentes
 data = load_data()
 
-st.title("Registro de Ocorrências")
+st.title("🚨 Registro de Ocorrências")
 st.write("Use o formulário abaixo para registrar uma nova ocorrência e posteriormente baixar os dados em formato JSON ou CSV.")
 
 # Formulário de entrada de dados
